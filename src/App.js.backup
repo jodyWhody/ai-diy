@@ -1,0 +1,211 @@
+
+import React, { useState } from 'react';
+import { Hammer, ArrowRight, ArrowLeft } from 'lucide-react';
+
+const AIDigPro = () => {
+  const [currentStep, setCurrentStep] = useState('input');
+  const [projectInput, setProjectInput] = useState('');
+  const [aiResponse, setAiResponse] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Call your backend API
+  const generateProjectPlan = async (input) => {
+    try {
+      const response = await fetch('https://aidiy-backend-f5de524e1808.herokuapp.com/todos/ai-diy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: input
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+      
+    } catch (error) {
+      console.error('Error calling backend API:', error);
+      // Fallback for demo
+      return {
+        response: "I'd be happy to help you with that project! However, I'm having trouble connecting to the AI service right now. Please make sure your backend is running on port 3000."
+      };
+    }
+  };
+
+  const handleProjectSubmit = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await generateProjectPlan(projectInput);
+      setAiResponse(response);
+      setCurrentStep('response');
+    } catch (error) {
+      console.error('Error generating project plan:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleBackToInput = () => {
+    setCurrentStep('input');
+    setAiResponse(null);
+  };
+
+  if (currentStep === 'input') {
+    return (
+      <div className="min-h-screen bg-gray-900 p-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12 pt-8">
+            <div className="flex items-center justify-center mb-4">
+              <Hammer className="h-10 w-10 text-blue-400 mr-3" />
+              <h1 className="text-5xl font-bold text-white">AI DIY Pro</h1>
+            </div>
+            <p className="text-xl text-gray-300">Let's build something amazing together</p>
+          </div>
+
+          {/* Main Input */}
+          <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 mb-8 border border-gray-700">
+            <h2 className="text-2xl font-semibold text-white mb-6">What do you want to build?</h2>
+            <div className="space-y-6">
+              <div>
+                <textarea
+                  value={projectInput}
+                  onChange={(e) => setProjectInput(e.target.value)}
+                  placeholder="Describe your project... 'I want to renovate my bathroom with a new vanity and modern fixtures' or 'Help me build a custom deck for entertaining'"
+                  className="w-full h-32 p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-white placeholder-gray-400"
+                />
+              </div>
+
+              <button
+                onClick={handleProjectSubmit}
+                disabled={!projectInput.trim() || isGenerating}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+              >
+                {isGenerating ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    AI is crafting your plan...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <Hammer className="h-5 w-5 mr-2" />
+                    Let's Build
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Examples */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+              onClick={() => setProjectInput('I want to renovate my bathroom with a new vanity, modern fixtures, and sleek lighting')}
+              className="bg-gray-800 p-6 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all hover:bg-gray-750 border border-gray-700 hover:border-blue-500"
+            >
+              <h3 className="font-semibold text-white mb-2">Bathroom Renovation</h3>
+              <p className="text-gray-400 text-sm">Modern fixtures and sleek design</p>
+            </div>
+            <div
+              onClick={() => setProjectInput('I want to build a custom deck for outdoor entertaining with professional railings')}
+              className="bg-gray-800 p-6 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all hover:bg-gray-750 border border-gray-700 hover:border-blue-500"
+            >
+              <h3 className="font-semibold text-white mb-2">Deck Building</h3>
+              <p className="text-gray-400 text-sm">Custom outdoor entertaining space</p>
+            </div>
+            <div
+              onClick={() => setProjectInput('I want to remodel my kitchen with new cabinets, countertops, and modern appliances')}
+              className="bg-gray-800 p-6 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all hover:bg-gray-750 border border-gray-700 hover:border-blue-500"
+            >
+              <h3 className="font-semibold text-white mb-2">Kitchen Remodel</h3>
+              <p className="text-gray-400 text-sm">Complete kitchen transformation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'response') {
+    return (
+      <div className="min-h-screen bg-gray-900 p-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8 pt-4">
+            <button
+              onClick={handleBackToInput}
+              className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              New Project
+            </button>
+            <div className="flex items-center">
+              <Hammer className="h-6 w-6 text-blue-400 mr-2" />
+              <span className="font-semibold text-white">AI DIY Pro</span>
+            </div>
+          </div>
+
+          {/* AI Response */}
+          <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-white mb-2">Your Project Plan</h1>
+              <p className="text-gray-400">Based on: "{projectInput}"</p>
+            </div>
+
+            <div className="bg-gray-700 rounded-xl p-6 border border-gray-600">
+              <div className="text-white leading-relaxed">
+                {aiResponse ? (
+                  <div>
+                    {/* Display whatever your API returns */}
+                    {typeof aiResponse === 'string' ? (
+                      <p>{aiResponse}</p>
+                    ) : (
+                      <div>
+                        {aiResponse.title && <h2 className="text-xl font-semibold mb-4">{aiResponse.title}</h2>}
+                        {aiResponse.aiResponse && <div className="whitespace-pre-wrap">{aiResponse.aiResponse}</div>}
+                        {aiResponse.content && <div className="whitespace-pre-wrap">{aiResponse.content}</div>}
+                        {aiResponse.message && <div className="whitespace-pre-wrap">{aiResponse.message}</div>}
+                        {/* Add more fields based on what your API returns */}
+                        {!aiResponse.aiResponse && !aiResponse.content && !aiResponse.message && (
+                          <pre className="text-sm text-gray-300">{JSON.stringify(aiResponse, null, 2)}</pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No response received</p>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-8 flex space-x-4">
+              <button
+                onClick={handleBackToInput}
+                className="flex-1 bg-gray-700 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-600 transition-colors border border-gray-600"
+              >
+                Start New Project
+              </button>
+              <button
+                onClick={() => {
+                  setProjectInput('');
+                  setCurrentStep('input');
+                }}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+              >
+                Build Another Project
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+};
+
+export default AIDigPro;
