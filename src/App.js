@@ -40,6 +40,9 @@ const App = () => {
             e.preventDefault();
             setActiveTab('settings');
             break;
+          default:
+            // Do nothing for other keys
+            break;
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -198,7 +201,7 @@ const App = () => {
           />
         ) : null;
       case 'account':
-        return <AccountTab user={user} isLoggedIn={isLoggedIn} />;
+        return <AccountTab user={user} isLoggedIn={isLoggedIn} savedProjects={savedProjects} />;
       case 'settings':
         return <SettingsTab />;
       default:
