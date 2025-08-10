@@ -1,8 +1,8 @@
 import React from 'react';
-import { FolderOpen, Plus, Calendar, Trash2 } from 'lucide-react';
+import { FolderOpen, Plus, Calendar, Trash2, Eye } from 'lucide-react';
 import AIResponseRenderer from './AIResponseRenderer';
 
-const SavedProjectsList = ({ savedProjects, onDeleteProject, onActiveTab }) => {
+const SavedProjectsList = ({ savedProjects, onDeleteProject, onActiveTab, onViewProject }) => {
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -18,7 +18,7 @@ const SavedProjectsList = ({ savedProjects, onDeleteProject, onActiveTab }) => {
     if (!firstMessage) return 'Untitled Project';
     
     const content = firstMessage.content;
-    return content.length > 50 ? content.substring(0, 50) + '...' : content;
+    return content.length > 60 ? content.substring(0, 60) + '...' : content;
   };
 
   if (savedProjects.length === 0) {
@@ -53,31 +53,44 @@ const SavedProjectsList = ({ savedProjects, onDeleteProject, onActiveTab }) => {
         </button>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         {savedProjects.map((project) => (
           <div key={project.id} className="bg-gray-800 rounded-xl border border-gray-700 p-6 hover:border-gray-600 transition-colors">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-white mb-2">
                   {getProjectTitle(project.conversation)}
                 </h3>
-                <div className="flex items-center text-gray-400 text-sm mb-4">
+                <div className="flex items-center text-gray-400 text-sm mb-3">
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(project.timestamp)}
                   <span className="mx-2">•</span>
                   <span>{project.conversation.filter(msg => msg.type === 'ai').length} responses</span>
                 </div>
-                <div className="bg-gray-700 rounded-lg p-4">
+                
+                {/* Project Preview */}
+                <div className="bg-gray-700 rounded-lg p-3 mb-4">
                   <AIResponseRenderer response={project.conversation.find(msg => msg.type === 'ai')?.content} />
                 </div>
+                
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => onViewProject(project)}
+                    className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
+                  </button>
+                  <button
+                    onClick={() => onDeleteProject(project.id)}
+                    className="flex items-center bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => onDeleteProject(project.id)}
-                className="ml-4 p-2 text-gray-400 hover:text-red-400 transition-colors"
-                title="Delete Project"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Hammer, ArrowRight, Send } from 'lucide-react';
+import { Hammer, ArrowRight } from 'lucide-react';
 
 const ProjectInput = ({ onSubmit }) => {
   const [projectInput, setProjectInput] = useState('');
@@ -23,27 +23,19 @@ const ProjectInput = ({ onSubmit }) => {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold text-white mb-4">What do you want to build?</h2>
-        <p className="text-xl text-gray-300">Let's create something amazing together</p>
+        <h2 className="text-4xl font-bold text-white mb-4">Let's create something amazing together</h2>
       </div>
 
       <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
         <div className="space-y-6">
-          <div className="relative">
+          <div>
             <textarea
               value={projectInput}
               onChange={(e) => setProjectInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Describe your project... 'I want to renovate my bathroom with a new vanity and modern fixtures' or 'Help me build a custom deck for entertaining'"
-              className="w-full h-32 p-4 pr-12 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-white placeholder-gray-400"
+              className="w-full h-32 p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-white placeholder-gray-400"
             />
-            <button
-              onClick={handleSubmit}
-              disabled={!projectInput.trim() || isGenerating}
-              className="absolute bottom-3 right-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed transition-all"
-            >
-              <Send className="h-4 w-4" />
-            </button>
           </div>
 
           <button
