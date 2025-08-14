@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';  
 import ProjectInput from './components/ProjectInput';
@@ -17,11 +17,63 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+
+  // API base URL - your backend
+  const API_BASE = 'https://aidiy-backend.herokuapp.com';
+
+  // API helper function
+  const apiCall = useCallback(async (endpoint, options = {}) => {
+    const url = `${API_BASE}${endpoint}`;
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    if (authToken) {
+      defaultOptions.headers.Authorization = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'API request failed');
+    }
+
+    return data;
+  }, [authToken, API_BASE]);
+
+  // Load user's projects from backend
+  const loadUserProjects = useCallback(async () => {
+    try {
+      const data = await apiCall('/projects');
+      setSavedProjects(data.projects || []);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  }, [apiCall]);
+
+  // Check for existing token on app load
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      setAuthToken(token);
+      fetchCurrentUser(token);
+    }
+  }, []);
+
+  // Load user's projects when logged in
+  useEffect(() => {
+    if (isLoggedIn && authToken) {
+      loadUserProjects();
+    }
+  }, [isLoggedIn, authToken, loadUserProjects]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only trigger if not typing in an input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
         return;
       }
@@ -41,7 +93,6 @@ const App = () => {
             setActiveTab('settings');
             break;
           default:
-            // Do nothing for other keys
             break;
         }
       } else if (e.key === 'Escape') {
@@ -54,30 +105,96 @@ const App = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSidebarCollapsed]);
 
-  // Mock login functions (replace with real auth later)
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    setUser({ name: 'John Doe', email: 'john@example.com' });
+  // Fetch current user info
+  const fetchCurrentUser = async (token) => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        setIsLoggedIn(true);
+      } else {
+        // Token is invalid, clear it
+        localStorage.removeItem('authToken');
+        setAuthToken(null);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      localStorage.removeItem('authToken');
+      setAuthToken(null);
+    }
   };
 
-  const handleSignup = () => {
-    setIsLoggedIn(true);
-    setUser({ name: 'New User', email: 'user@example.com' });
+  // Real authentication functions
+  const handleLogin = async (email, password) => {
+    try {
+      const data = await apiCall('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      setAuthToken(data.token);
+      setUser(data.user);
+      setIsLoggedIn(true);
+      localStorage.setItem('authToken', data.token);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    setActiveTab('new-project');
+  const handleSignup = async (name, email, password) => {
+    try {
+      const data = await apiCall('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      setAuthToken(data.token);
+      setUser(data.user);
+      setIsLoggedIn(true);
+      localStorage.setItem('authToken', data.token);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
-  // Your existing API function
+  const handleLogout = async () => {
+    try {
+      if (authToken) {
+        await apiCall('/auth/logout', { method: 'POST' });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggedIn(false);
+      setUser(null);
+      setAuthToken(null);
+      setSavedProjects([]);
+      setActiveTab('new-project');
+      localStorage.removeItem('authToken');
+    }
+  };
+
+  // AI project generation (updated to use new backend structure)
   const generateProjectPlan = async (input, isFollowUp = false) => {
     try {
-      const response = await fetch('https://aidiy-backend-f5de524e1808.herokuapp.com/todos/ai-diy', {
+      const response = await fetch(`${API_BASE}/todos/ai-diy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
         },
         body: JSON.stringify({
           query: input,
@@ -95,7 +212,7 @@ const App = () => {
     } catch (error) {
       console.error('Error calling backend API:', error);
       return {
-        response: "I'd be happy to help you with that project! However, I'm having trouble connecting to the AI service right now."
+        aiResponse: "I'd be happy to help you with that project! However, I'm having trouble connecting to the AI service right now."
       };
     }
   };
@@ -134,16 +251,29 @@ const App = () => {
     }
   };
 
-  const handlePublishProject = () => {
-    const newProject = {
-      id: Date.now(),
-      conversation: currentConversation,
-      timestamp: new Date().toISOString()
-    };
-    
-    setSavedProjects(prev => [newProject, ...prev]);
-    setActiveTab('projects');
-    setCurrentConversation([]);
+  // Save project to backend (if logged in)
+  const handlePublishProject = async () => {
+    if (!isLoggedIn) {
+      alert('Please log in to save projects');
+      return;
+    }
+
+    try {
+      await apiCall('/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          conversation: currentConversation,
+        }),
+      });
+
+      // Reload projects list
+      await loadUserProjects();
+      setActiveTab('projects');
+      setCurrentConversation([]);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('Error saving project. Please try again.');
+    }
   };
 
   const handleBackToNewProject = () => {
@@ -151,11 +281,25 @@ const App = () => {
     setActiveTab('new-project');
   };
 
-  const handleDeleteProject = (projectId) => {
-    setSavedProjects(prev => prev.filter(project => project.id !== projectId));
-    if (selectedProject && selectedProject.id === projectId) {
-      setSelectedProject(null);
-      setActiveTab('projects');
+  // Delete project from backend
+  const handleDeleteProject = async (projectId) => {
+    if (!isLoggedIn) return;
+
+    try {
+      await apiCall(`/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      // Remove from local state
+      setSavedProjects(prev => prev.filter(project => project.id !== projectId));
+      
+      if (selectedProject && selectedProject.id === projectId) {
+        setSelectedProject(null);
+        setActiveTab('projects');
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Error deleting project. Please try again.');
     }
   };
 
