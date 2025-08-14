@@ -20,7 +20,7 @@ const App = () => {
   const [authToken, setAuthToken] = useState(null);
 
   // API base URL - your backend
-  const API_BASE = 'https://aidiy-backend.herokuapp.com';
+  const API_BASE = 'https://aidiy-backend-f5de524e1808.herokuapp.com';
 
   // API helper function
   const apiCall = useCallback(async (endpoint, options = {}) => {
